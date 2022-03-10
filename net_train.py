@@ -14,7 +14,7 @@ import numpy as np
 np.random.seed(12345)
 import torch
 
-torch.manual_seed(12345)
+#torch.manual_seed(12345)
 
 import wandb
 

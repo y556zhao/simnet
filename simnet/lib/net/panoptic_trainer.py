@@ -11,8 +11,7 @@ import numpy as np
 np.random.seed(123456)
 import torch
 
-torch.manual_seed(123456)
-
+#torch.manual_seed(123456)
 import wandb
 
 import pytorch_lightning as pl
@@ -112,6 +111,8 @@ class PanopticModel(pl.LightningModule):
     #  self.model.train()
 
     image, seg_target, depth_target, pose_targets, box_targets, keypoint_targets, detections_gt, scene_name = batch
+    print("!!!!!!!!!!!!!!!!!!!!!")
+    print(image.shape)
     seg_output, depth_output, small_depth_output, pose_outputs, box_outputs, keypoint_outputs = self.forward(
         image
     )

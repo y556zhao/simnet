@@ -72,7 +72,6 @@ torchvision==0.5.0
 tqdm==4.61.2
 traitlets==5.0.5
 urllib3==1.26.6
-wandb==0.11.0
 wcwidth==0.2.5
 Werkzeug==2.0.1
 ydiff==1.2

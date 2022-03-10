@@ -17,8 +17,8 @@ def add_dataset_args(parser, prefix):
 
 
 def add_train_args(parser):
-  parser.add_argument("--max_steps", type=int, required=True)
-  parser.add_argument("--output", type=str, required=True)
+  parser.add_argument("--max_steps", default=400000, type=int, required=True)
+  parser.add_argument("--output", default ="ckpts", type=str, required=True)
 
   add_dataset_args(parser, "train")
   add_dataset_args(parser, "val")
@@ -30,10 +30,10 @@ def add_train_args(parser):
   optim_group.add_argument("--optim_weight_decay", default=1e-4, type=float)
   optim_group.add_argument("--optim_poly_exp", default=0.9, type=float)
   optim_group.add_argument("--optim_warmup_epochs", default=None, type=int)
-  parser.add_argument("--model_file", type=str, required=True)
-  parser.add_argument("--model_name", type=str, required=True)
+  parser.add_argument("--model_file", default="models/panoptic_net.py", type=str, required=True)
+  parser.add_argument("--model_name", default="res_fpn", type=str, required=True)
   parser.add_argument("--checkpoint", default=None, type=str)
-  parser.add_argument("--wandb_name", type=str, required=True)
+  parser.add_argument("--wandb_name", default="simnet-github", type=str, required=False)
   # Ignore Mask Search.
   parser.add_argument("--min_height", default=0.0, type=float)
   parser.add_argument("--min_occlusion", default=0.0, type=float)
