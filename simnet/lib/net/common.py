@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import ConcatDataset, DataLoader
 
 from simnet.lib.net.init.default_init import default_init
-from simnet.lib.net.dataset import Dataset
+from simnet.lib.net.keypose_dataset import Dataset
 
 
 def add_dataset_args(parser, prefix):

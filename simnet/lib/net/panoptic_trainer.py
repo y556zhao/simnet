@@ -17,7 +17,7 @@ import wandb
 import pytorch_lightning as pl
 
 from simnet.lib.net import common
-from simnet.lib.net.dataset import extract_left_numpy_img
+from simnet.lib.net.keypose_dataset import extract_left_numpy_img
 from simnet.lib.net.functions.learning_rate import lambda_learning_rate_poly, lambda_warmup
 
 _GPU_TO_USE = 0
@@ -111,18 +111,16 @@ class PanopticModel(pl.LightningModule):
     #  self.model.train()
 
     image, seg_target, depth_target, pose_targets, box_targets, keypoint_targets, detections_gt, scene_name = batch
-    print("!!!!!!!!!!!!!!!!!!!!!")
-    print(image.shape)
     seg_output, depth_output, small_depth_output, pose_outputs, box_outputs, keypoint_outputs = self.forward(
         image
     )
     log = {}
     with torch.no_grad():
       # Compute mAP score
-      if scene_name[0] != 'fmk':
-        self.eval_metrics.process_sample(
-            pose_outputs, box_outputs, seg_output, detections_gt[0], scene_name[0]
-        )
+      #if scene_name[0] != 'fmk':
+      #  self.eval_metrics.process_sample(
+      #      seg_output#pose_outputs, box_outputs, seg_output, detections_gt[0], scene_name[0]
+       # )
       logger = self.logger.experiment
       if batch_idx < 5 or scene_name[0] == 'fmk':
         llog = {}

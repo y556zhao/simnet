@@ -95,4 +95,5 @@ if __name__ == "__main__":
       use_amp=False,
       print_nan_grads=True
   )
+  print("!!!start training!!!")
   trainer.fit(model)

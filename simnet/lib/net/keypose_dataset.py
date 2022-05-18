@@ -56,20 +56,20 @@ class Dataset(Dataset):
     return len(self.datapoint_handles)
 
   def __getitem__(self, idx):
-
     dp = self.datapoint_handles[idx].read()
     anaglyph = self.preprocces_image_func(dp.stereo)
+    print(dp.depth.shape)
     segmentation_target = segmentation_outputs.SegmentationOutput(dp.segmentation, self.hparams)
     segmentation_target.convert_to_torch_from_numpy()
     depth_target = depth_outputs.DepthOutput(dp.depth, self.hparams)
     depth_target.convert_to_torch_from_numpy()
     pose_target = None
-    for pose_dp in dp.object_poses:
+    """for pose_dp in dp.object_poses:
       pose_target = obb_outputs.OBBOutput(
           pose_dp.heat_map, pose_dp.vertex_target, pose_dp.z_centroid, pose_dp.cov_matrices,
           self.hparams
       )
-      pose_target.convert_to_torch_from_numpy()
+      pose_target.convert_to_torch_from_numpy()"""
 
     # TODO(kevin): remove these unused outputs
     box_target = None

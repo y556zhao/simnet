@@ -15,6 +15,11 @@ import cv2
 import boto3
 import numpy as np
 import zstandard as zstd
+import os
+import OpenEXR
+import Imath
+import torch
+import matplotlib.pyplot as plt
 
 
 def get_uid():
@@ -235,7 +240,8 @@ def make_one_simple_dataset(uri):
   if uri.startswith('file://'):
     path = uri.partition('file://')[2]
     dataset_path = pathlib.Path(path)
-    return LocalDataset(dataset_path)
+    return KeyposeDataset(dataset_path)
+    #return LocalDataset(dataset_path)
 
   raise ValueError(f'uri must start with `s3://` or `file://`. uri={uri}')
 
@@ -395,7 +401,6 @@ def retry_delay(attempt):
 
 
 class LocalDataset:
-
   def __init__(self, dataset_path):
     if not dataset_path.exists():
       print('New dataset directory:', dataset_path)
@@ -417,8 +422,130 @@ class LocalDataset:
       fh.write(buf)
 
 
-class LocalReadHandle:
+class KeyposeDataset:
+  def __init__(self, dataset_path):
+    if not dataset_path.exists():
+      print('New dataset directory:', dataset_path)
+      dataset_path.mkdir(parents=True)
+    assert dataset_path.is_dir()
+    self.dataset_path = dataset_path
 
+  def list(self):
+    handles = []
+    obj_names = [dr for dr in os.listdir(self.dataset_path)]
+    obj_name = obj_names[0]
+    data_directory = f'{self.dataset_path}/{obj_name}/data/{obj_name}'
+    scenes = [dr for dr in os.listdir(data_directory)]
+    for scene in scenes:
+      scene_directory = f'{data_directory}/{scene}'
+      ids = []
+      for scene_id in os.listdir(scene_directory):
+        if scene_id[:6] not in ids and scene_id[0] == '0':
+          ids.append(scene_id[:6])
+          handles.append(KeyposeReadHandle(scene_directory, scene_id[:6]))
+    return sorted(handles, key=operator.attrgetter('uid'))
+
+  def write(self, datapoint):
+    path = _datapoint_path(self.dataset_path, datapoint.uid)
+    buf = compress_datapoint(datapoint)
+    with open(path, 'wb') as fh:
+      fh.write(buf)
+
+
+class Keypose:
+  def __init__(self, stereo=None, depth=None, segmentation=None, file_id=None):
+    self.stereo=stereo
+    self.depth=depth
+    self.segmentation=segmentation
+    self.file_id=file_id
+    self.scene_name=file_id
+    self.detections=None
+    #object_poses: list
+    #boxes: list
+    #detections: list
+    #keypoints: list = dataclasses.field(default_factory=list)
+    #instance_mask: np.ndarray = None
+    #scene_name: str = 'sim'
+    #uid: str = dataclasses.field(default_factory=get_uid)
+    #compressed: bool = False
+
+def load_depth(file):
+  def exr_loader(EXR_PATH, ndim=3):
+    exr_file = OpenEXR.InputFile(EXR_PATH)
+    cm_dw = exr_file.header()['dataWindow']
+    size = (cm_dw.max.x - cm_dw.min.x + 1, cm_dw.max.y - cm_dw.min.y + 1)
+
+    pt = Imath.PixelType(Imath.PixelType.FLOAT)
+
+    if ndim == 3:
+      # read channels indivudally
+      allchannels = []
+      for c in ['R', 'G', 'B']:
+        # transform data to numpy
+        channel = np.frombuffer(exr_file.channel(c, pt), dtype=np.float32)
+        channel.shape = (size[1], size[0])
+        allchannels.append(channel)
+
+      # create array and transpose dimensions to match tensor style
+      exr_arr = np.array(allchannels).transpose((0, 1, 2))
+      return exr_arr
+
+    if ndim == 1:
+      # transform data to numpy
+      channel = np.frombuffer(exr_file.channel('D', pt), dtype=np.float32)
+      channel.shape = (size[1], size[0])  # Numpy arrays are (row, col)
+      exr_arr = np.array(channel)
+      return exr_arr
+
+  gt_depth = exr_loader(file, ndim=1)
+  vmin = min(gt_depth.min(), gt_depth.min())
+  vmax = max(gt_depth.max(), gt_depth.max())
+  dim = (640, 512)
+  gt_depth = cv2.resize(gt_depth, dim, interpolation=cv2.INTER_CUBIC)
+  #gt_depth = np.expand_dims(gt_depth, axis=0)
+  #gt_depth = torch.from_numpy(gt_depth).float()
+  return gt_depth
+
+def load_img(file):
+  img = plt.imread(file)
+  dim = (640, 512)
+  img = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+  return np.array(img)
+
+def load_segmentation_mask(file):
+  img = cv2.imread(file)
+  img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+  dim = (640, 512)
+  img = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+  gray_scale_img = np.zeros(img.shape)
+  return np.array(gray_scale_img)
+
+def decompress_keypose_datapoint(dataset_path, uid):
+
+  depth=load_depth(f'{dataset_path}/{uid}_Do.exr')
+  left_img=load_img(f'{dataset_path}/{uid}_L.png')
+  right_img = load_img(f'{dataset_path}/{uid}_R.png')
+  stereo=Stereo(left_color=left_img,right_color=right_img,compressed= False)
+  segmentation=load_segmentation_mask(f'{dataset_path}/{uid}_mask.png')
+  file_id=f'{dataset_path}/{uid}'
+  dp = Keypose(stereo=stereo, depth=depth, segmentation=segmentation, file_id=file_id)
+  return dp
+
+class KeyposeReadHandle:
+  def __init__(self, dataset_path, uid):
+    self.dataset_path = dataset_path
+    self.uid = uid
+
+  def read(self, disable_final_decompression=False):
+    dp = decompress_keypose_datapoint(self.dataset_path, self.uid)
+    # TODO: remove this, once old datasets without UID are out of use
+    #if not hasattr(dp, 'uid'):
+    #  dp.uid = self.uid
+    #assert dp.uid == self.uid
+    print(dp.file_id)
+    return dp
+
+class LocalReadHandle:
   def __init__(self, dataset_path, uid):
     self.dataset_path = dataset_path
     self.uid = uid
