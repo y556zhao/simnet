@@ -1,7 +1,7 @@
 import os
 
 os.environ['PYTHONHASHSEED'] = str(1)
-
+CUDA_LAUNCH_BLOCKING=1
 import argparse
 from importlib.machinery import SourceFileLoader
 import sys

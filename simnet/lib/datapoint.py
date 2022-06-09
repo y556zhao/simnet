@@ -20,7 +20,7 @@ import OpenEXR
 import Imath
 import torch
 import matplotlib.pyplot as plt
-
+import scipy.ndimage
 
 def get_uid():
   return shortuuid.uuid()
@@ -451,23 +451,22 @@ class KeyposeDataset:
     with open(path, 'wb') as fh:
       fh.write(buf)
 
+class Poses:
+  def __init__(self, heat_map=None, vertex_target=None, z_centroid=None, cov_matrices=None):
+    self.heat_map=heat_map
+    self.vertex_target=vertex_target
+    self.z_centroid=z_centroid
+    self.cov_matrices=cov_matrices
 
 class Keypose:
-  def __init__(self, stereo=None, depth=None, segmentation=None, file_id=None):
+  def __init__(self, stereo=None, depth=None, segmentation=None, file_id=None, poses=None):
     self.stereo=stereo
     self.depth=depth
     self.segmentation=segmentation
     self.file_id=file_id
     self.scene_name=file_id
     self.detections=None
-    #object_poses: list
-    #boxes: list
-    #detections: list
-    #keypoints: list = dataclasses.field(default_factory=list)
-    #instance_mask: np.ndarray = None
-    #scene_name: str = 'sim'
-    #uid: str = dataclasses.field(default_factory=get_uid)
-    #compressed: bool = False
+    self.object_poses=poses
 
 def load_depth(file):
   def exr_loader(EXR_PATH, ndim=3):
@@ -498,37 +497,74 @@ def load_depth(file):
       return exr_arr
 
   gt_depth = exr_loader(file, ndim=1)
-  vmin = min(gt_depth.min(), gt_depth.min())
-  vmax = max(gt_depth.max(), gt_depth.max())
-  dim = (640, 512)
-  gt_depth = cv2.resize(gt_depth, dim, interpolation=cv2.INTER_CUBIC)
-  #gt_depth = np.expand_dims(gt_depth, axis=0)
-  #gt_depth = torch.from_numpy(gt_depth).float()
-  return gt_depth
+  img=gt_depth[104:616, 320:960]
+  return np.array(img)
 
 def load_img(file):
   img = plt.imread(file)
-  dim = (640, 512)
-  img = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+  img = img[104:616, 320:960]
   return np.array(img)
 
 def load_segmentation_mask(file):
-  img = cv2.imread(file)
-  img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-  dim = (640, 512)
-  img = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
-  gray_scale_img = np.zeros(img.shape)
-  return np.array(gray_scale_img)
+  img = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
+  img = img[104:616, 320:960]
+  img = np.where(img > 0, 1, img)
+  return np.array(img)
+
+def load_pose(file):
+  poses = np.load(file)
+  heatmap = poses["heatmaps"]
+  pose_obj=Poses(heat_map=heatmap[0], vertex_target=poses["vertex_output"], z_centroid=poses["centroid_map"], cov_matrices=poses["cov_map"])
+  return pose_obj
+
+def decompose_keypoint(filename):
+  params = {}
+  num_kp = 0
+  params['u'] = []
+  params['v'] = []
+  with open(filename, "r") as file:
+    for line in file:
+      line.replace(" ", "")
+      if "proj_targets" in line:
+        break
+      else:
+        if 'keypoints' in line:
+          num_kp += 1
+        elif 'u' in line:
+          params['u'].append(float(line.split(":", 1)[1].strip()))
+        elif "v" in line and "visible" not in line:
+          params['v'].append(float(line.split(":", 1)[1].strip()))
+  kps = {}
+  for num in range(num_kp):
+    kps[f'keypoint_{num}'] = {'u': params['u'][num], 'v': params['v'][num]}
+  return kps
+
+def gaussion(outputdims=[512, 640], keyponits=[[100, 100]], sigma=[5, 5]):
+    positive = np.zeros((outputdims[0], outputdims[1]))
+    for kp_location in keyponits:
+        positive[kp_location[0],kp_location[1]] = 1
+    positive = scipy.ndimage.gaussian_filter(positive, sigma=sigma, mode='constant')
+    positive = positive * (1.0 / np.max(positive))
+    plt.imshow(positive)
+    return positive
+
+def generate_kp_heatmap(file, org_img_shape):
+  kps = decompose_keypoint(file)
+  keypoints = [[int(kps[key]['v']), int(kps[key]['u'])] for key in kps.keys()]
+  heatmap = gaussion(outputdims=org_img_shape, keyponits=keypoints, sigma=[5, 5])
+  img = heatmap[104:616, 320:960]
+  return np.array(img)
 
 def decompress_keypose_datapoint(dataset_path, uid):
-
   depth=load_depth(f'{dataset_path}/{uid}_Do.exr')
   left_img=load_img(f'{dataset_path}/{uid}_L.png')
-  right_img = load_img(f'{dataset_path}/{uid}_R.png')
+  right_img=load_img(f'{dataset_path}/{uid}_R.png')
   stereo=Stereo(left_color=left_img,right_color=right_img,compressed= False)
   segmentation=load_segmentation_mask(f'{dataset_path}/{uid}_mask.png')
   file_id=f'{dataset_path}/{uid}'
-  dp = Keypose(stereo=stereo, depth=depth, segmentation=segmentation, file_id=file_id)
+  pose_obj= load_pose(f'{dataset_path}/{uid}_data.npz')
+  #keypoint_map = generate_kp_heatmap(f'{dataset_path}/{uid}_L.pbtxt', left_img.shape)
+  dp = Keypose(stereo=stereo, depth=depth, segmentation=segmentation, file_id=file_id, poses=pose_obj)
   return dp
 
 class KeyposeReadHandle:
@@ -538,11 +574,6 @@ class KeyposeReadHandle:
 
   def read(self, disable_final_decompression=False):
     dp = decompress_keypose_datapoint(self.dataset_path, self.uid)
-    # TODO: remove this, once old datasets without UID are out of use
-    #if not hasattr(dp, 'uid'):
-    #  dp.uid = self.uid
-    #assert dp.uid == self.uid
-    print(dp.file_id)
     return dp
 
 class LocalReadHandle:

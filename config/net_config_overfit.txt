@@ -4,10 +4,10 @@
 --output=ckpts
 --train_path=file://datasets/simnet2021a/train?samples=400
 --train_batch_size=1
---train_num_workers=4
+--train_num_workers=1
 --val_path=file://datasets/simnet2021a/train?samples=1
 --val_batch_size=1
---val_num_workers=4
+--val_num_workers=1
 --optim_learning_rate=0.0006
 --optim_momentum=0.9
 --optim_weight_decay=1e-4
@@ -20,4 +20,3 @@
 --loss_rotation_mult=0.1
 --loss_heatmap_mult=100.0
 --loss_z_centroid_mult=0.1
---wandb_name=simnet-github-overfit

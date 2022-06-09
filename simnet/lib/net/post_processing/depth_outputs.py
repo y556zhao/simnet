@@ -40,14 +40,20 @@ class DepthOutput:
     left_img_np[:disp_scaled.shape[0], -disp_scaled.shape[1]:] = disp_map_visualize(disp_scaled)
     return left_img_np
 
-  def compute_loss(self, depth_targets, log, name):
+  def compute_loss(self, depth_targets, seg_targets, log, name):
     if self.is_numpy:
       raise ValueError("Output is not in torch mode")
     depth_target_stacked = []
-    for depth_target in depth_targets:
-      depth_target_stacked.append(depth_target.depth_pred)
+    seg_target_stacked = []
+    for depth_target, seg_target in zip(depth_targets,seg_targets):  # only one element in list
+      depth_target_stacked.append(depth_target.depth_pred * seg_target.seg_pred)
+      seg_target_stacked.append(seg_target.seg_pred)
+
     depth_target_batch = torch.stack(depth_target_stacked)
     depth_target_batch = depth_target_batch.to(torch.device('cuda:0'))
+    seg_target_batch= torch.stack(seg_target_stacked)
+    seg_target_batch = seg_target_batch.to(torch.device('cuda:0'))
+
     scale_factor = self.depth_pred.shape[2] / depth_target_batch.shape[2]
     if scale_factor != 1.0:
       depth_target_batch = F.interpolate(
@@ -55,6 +61,18 @@ class DepthOutput:
       )[:, 0, :, :]
       # scale down disparity by same factor as spatial resize
       depth_target_batch = depth_target_batch * scale_factor
+
+      seg_target_batch=seg_target_batch.type(torch.cuda.FloatTensor)
+      seg_target_batch = F.interpolate(
+        seg_target_batch[:, None, :, :], scale_factor=scale_factor
+      )[:, 0, :, :]
+      self.depth_pred = self.depth_pred * seg_target_batch
+
+      """seg_resized=seg_target_stacked[0].cpu().numpy()
+      seg_resized=np.resize(seg_resized,(128, 160))
+      #seg_resized = seg_target_stacked[0].resize((seg_target_stacked[0].shape[0] * scale_factor, seg_target_stacked[0].shape[1] * scale_factor))
+      self.depth_pred=self.depth_pred*torch.from_numpy(seg_resized).to(torch.device('cuda:0'))"""
+
     depth_loss = self.loss(self.depth_pred, depth_target_batch) / scale_factor
     log[name] = depth_loss
     return self.loss_multiplier * depth_loss

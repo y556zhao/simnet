@@ -60,9 +60,9 @@ class PanopticModel(pl.LightningModule):
     )
 
     log = {}
-    loss = depth_output.compute_loss(copy.deepcopy(depth_target), log, 'refined_disp')
+    loss = depth_output.compute_loss(copy.deepcopy(depth_target), copy.deepcopy(seg_target), log, 'refined_disp')
     if self.hparams.frozen_stereo_checkpoint is None:
-      loss = loss + small_depth_output.compute_loss(depth_target, log, 'cost_volume_disp')
+      loss = loss + small_depth_output.compute_loss(depth_target, copy.deepcopy(seg_target), log, 'cost_volume_disp')
     else:
       assert False
     loss = loss + seg_output.compute_loss(seg_target, log)

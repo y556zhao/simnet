@@ -2,10 +2,10 @@
 --model_file=models/panoptic_net.py
 --model_name=res_fpn
 --output=ckpts
---train_path=file://datasets/keypose_data?samples=400
+--train_path=file:///home/sf3202msi/hdd/allan/keypose_train_overfit_test?samples=400
 --train_batch_size=1
 --train_num_workers=1
---val_path=file://datasets/keypose_data?samples=1
+--val_path=file:///home/sf3202msi/hdd/allan/keypose_train_overfit_test?samples=1
 --val_batch_size=1
 --val_num_workers=1
 --optim_learning_rate=0.0006

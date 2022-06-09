@@ -66,7 +66,7 @@ def color_img_to_gray(image):
   img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
   for i in range(3):
     gray_scale_img[:, :, i] = img
-  gray_scale_img[:, :, i] = img
+
   return gray_scale_img
 
 
