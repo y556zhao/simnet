@@ -514,7 +514,7 @@ def load_segmentation_mask(file):
 def load_pose(file):
   poses = np.load(file)
   heatmap = poses["heatmaps"]
-  pose_obj=Poses(heat_map=heatmap[0], vertex_target=poses["vertex_output"], z_centroid=poses["centroid_map"], cov_matrices=poses["cov_map"])
+  pose_obj=Poses(heat_map=heatmap[0], vertex_target=poses["vertex_output"], z_centroid=poses["centroid_map"]*(-1), cov_matrices=poses["cov_map"])
   return pose_obj
 
 def decompose_keypoint(filename):

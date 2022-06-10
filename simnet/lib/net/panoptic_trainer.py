@@ -120,7 +120,7 @@ class PanopticModel(pl.LightningModule):
       #if scene_name[0] != 'fmk':
       #  self.eval_metrics.process_sample(
       #      seg_output#pose_outputs, box_outputs, seg_output, detections_gt[0], scene_name[0]
-       # )
+      # )
       logger = self.logger.experiment
       if batch_idx < 5 or scene_name[0] == 'fmk':
         llog = {}

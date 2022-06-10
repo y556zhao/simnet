@@ -291,10 +291,10 @@ def draw_9dof_box(c_img, boxes, successes=None):
     for i, circle_color in zip(range(vertices.shape[0]), circle_colors):
       color = vertex_colors
       point = (int(vertices[i, 1]), int(vertices[i, 0]))
-      c_img = cv2.circle(c_img, point, 1, (0, 255, 0), -1)
+      c_img = cv2.circle(c_img, point, 3, (0, 255, 0), -1)
       points.append(point)
     # Draw the lines
-    thickness = 1
+    """    thickness = 1
     c_img = cv2.line(c_img, points[0], points[1], line_color, thickness)
     c_img = cv2.line(c_img, points[0], points[2], line_color, thickness)
     c_img = cv2.line(c_img, points[0], points[4], line_color, thickness)
@@ -306,5 +306,5 @@ def draw_9dof_box(c_img, boxes, successes=None):
     c_img = cv2.line(c_img, points[5], points[7], line_color, thickness)  #9
     c_img = cv2.line(c_img, points[6], points[7], line_color, thickness)
     c_img = cv2.line(c_img, points[6], points[4], line_color, thickness)
-    c_img = cv2.line(c_img, points[6], points[2], line_color, thickness)  #12
+    c_img = cv2.line(c_img, points[6], points[2], line_color, thickness)  #12"""
   return c_img

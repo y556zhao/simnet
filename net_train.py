@@ -23,7 +23,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import loggers
 
 from simnet.lib.net import common
-from simnet.lib import datapoint, camera
+from simnet.lib import datapoint, zed_camera
 from simnet.lib.net.post_processing.eval3d import Eval3d, extract_objects_from_detections
 from simnet.lib.net import panoptic_trainer
 
@@ -35,7 +35,7 @@ class EvalMethod():
   def __init__(self):
 
     self.eval_3d = Eval3d()
-    self.camera_model = camera.FMKCamera()
+    self.camera_model = zed_camera.ZEDCamera()
 
   def process_sample(self, pose_outputs, box_outputs, seg_outputs, detections_gt, scene_name):
     detections = pose_outputs.get_detections(self.camera_model)

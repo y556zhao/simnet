@@ -1,6 +1,6 @@
 import numpy as np
 
-from simnet.lib import camera
+from simnet.lib import zed_camera
 from simnet.lib.net.post_processing import epnp
 
 
@@ -30,7 +30,7 @@ def mark_occlusions_in_detections(
     detections, occlusion_score=0.5, camera_model=None, allow_outside_of_image=False
 ):
   if camera_model is None:
-    camera_model = camera.FMKCamera()
+    camera_model = zed_camera.ZEDCamera()
   for ii in range(len(detections)):
     if object_is_outside_image(detections[ii], camera_model):
       detections[ii].ignore = True

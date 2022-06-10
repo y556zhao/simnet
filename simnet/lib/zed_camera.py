@@ -28,22 +28,42 @@ class ZEDCamera:
 
     self.stereo_baseline = stereo_baseline
     self.is_left = True
+    self.hfov_deg = hfov_deg
+    self.vfov_deg = vfov_deg
+    self.height = height
+    self.width = width
 
-    fx=675.61713
-    fy=675.61713
-    cx= 632.1181
-    cy= 338.28537
 
+    self.fx = 675.61713
+    self.fy = 675.61713
+    self.cx = 632.1181
+    self.cy = 338.28537
+    self.baseline = 0.120007
+
+    self.Q_matrix = np.array([
+        [1.0, 0, 0, -self.cx],  # cx
+        [0, 1.0, 0, -self.cy],  # cy
+        [0, 0, 0, self.fx],  # fx
+        [0, 0, (1.0 / self.baseline), 0]
+    ])
+
+    self.P_matrix = [
+        [self.fx, 0, self.cx, 0],  # fx, cx
+        [0, self.fy, self.cy, 0],  # fy, cy
+        [0, 0, 0, (self.fx * self.baseline)],  # fx*baseline
+        [0, 0, 1.0, 0]
+    ]
+
+    self.P_matrix=np.array(self.P_matrix)
 
     self._set_intrinsics(
         np.array([
-            [fx, 0, cx, 0],  # fx, cx
-            [0, fy, cy, 0],  # fy, cy
-            [0, 0, 1, 0]
-            [0., 0., 0., 1.],
+            [self.fx, 0, self.cx, 0],  # fx, cx
+            [0, self.fy, self.cy, 0],  # fy, cy
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
         ])
     )
-
 
   def add_camera_noise(self, img):
     return camera_noise.add(img)
@@ -63,7 +83,7 @@ class ZEDCamera:
     assert intrinsics_matrix.shape[1] == 4
 
     self.K_matrix = intrinsics_matrix
-    self.proj_matrix = self.K_matrix @ self.RT_matrix
+    self.proj_matrix = self.K_matrix #@ self.RT_matrix
 
   def project(self, points):
     """Project 4d homogenous points (4xN) to 4d homogenous pixels (4xN)"""
