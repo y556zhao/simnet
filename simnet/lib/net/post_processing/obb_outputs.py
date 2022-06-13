@@ -193,15 +193,9 @@ def compute_oriented_bounding_boxes(
     error, camera_T_object, scale_matrix = optimize_for_9D(
         bbox_ext_flipped.T, camera_model, solve_for_transforms=True
     )
-    # Revert back to original pose.
-    camera_T_object = camera_T_object @ transform.Transform.from_aa(
-        axis=transform.X_AXIS, angle_deg=-45.0
-    ).matrix
-    # Add rotation solution to pose.
-    camera_T_object = camera_T_object @ solve_for_rotation_from_cov_matrix(cov_matrix)
     # Assign correct depth factor
     abs_camera_T_object, abs_object_scale = epnp.find_absolute_scale(
-        -1.0 * z_centroid, camera_T_object, scale_matrix
+        _centroid, camera_T_object, scale_matrix
     )
     poses.append(transform.Pose(camera_T_object=abs_camera_T_object, scale_matrix=abs_object_scale))
     scores.append(heatmap_output[peak[0], peak[1]])
