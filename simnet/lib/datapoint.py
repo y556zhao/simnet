@@ -517,7 +517,7 @@ def load_pose(file):
   try:
     cov_matrices=poses["cov_map"]
   except:
-    cov_matrices=None
+    cov_matrices=np.zeros([64, 80, 6])
   pose_obj=Poses(heat_map=heatmap[0], vertex_target=poses["vertex_output"], z_centroid=poses["centroid_map"]*(-1), cov_matrices=cov_matrices)
   return pose_obj
 
