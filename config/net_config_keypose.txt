@@ -2,10 +2,10 @@
 --model_file=models/panoptic_net.py
 --model_name=res_fpn
 --output=ckpts
---train_path=file://datasets/keypose_data
+--train_path=file://datasets/keypose_data/train
 --train_batch_size=12
 --train_num_workers=4
---val_path=file://datasets/keypose_data
+--val_path=file://datasets/keypose_data/val
 --val_batch_size=1
 --val_num_workers=10
 --optim_learning_rate=0.0006
