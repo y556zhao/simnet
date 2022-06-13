@@ -433,16 +433,19 @@ class KeyposeDataset:
   def list(self):
     handles = []
     obj_names = [dr for dr in os.listdir(self.dataset_path)]
-    obj_name = obj_names[0]
-    data_directory = f'{self.dataset_path}/{obj_name}/data/{obj_name}'
-    scenes = [dr for dr in os.listdir(data_directory)]
-    for scene in scenes:
-      scene_directory = f'{data_directory}/{scene}'
-      ids = []
-      for scene_id in os.listdir(scene_directory):
-        if scene_id[:6] not in ids and scene_id[0] == '0':
-          ids.append(scene_id[:6])
-          handles.append(KeyposeReadHandle(scene_directory, scene_id[:6]))
+    for obj_name in obj_names:
+      data_directory = f'{self.dataset_path}/{obj_name}/data/{obj_name}'
+      scenes = [dr for dr in os.listdir(data_directory)]
+      for scene in scenes:
+        scene_directory = f'{data_directory}/{scene}'
+        ids = []
+        for scene_id in os.listdir(scene_directory):
+          if scene_id[:6] not in ids and scene_id[0] == '0':
+            ids.append(scene_id[:6])
+            try:
+              handles.append(KeyposeReadHandle(scene_directory, scene_id[:6]))
+            except:
+              pass
     return sorted(handles, key=operator.attrgetter('uid'))
 
   def write(self, datapoint):
